@@ -26,6 +26,8 @@ STAMP=/var/lib/usecert-backup/last-ok
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
+# Mail for use-cert.com moved here from Montreal on 2026-09-26: the mailbox, its config, the
+# dovecot password hash and the DKIM key ride in the same encrypted archive.
 # The keepers rewrite their journals while this runs, and tar exits 1 when a file changed
 # under it. That exit is tolerated - but only because every journal in the archive is then
 # parsed below, so a torn copy fails the backup instead of shipping.
@@ -34,6 +36,7 @@ tar -C / -czf "$TMP/state.tgz" --warning=no-file-changed \
   --exclude='opt/keeper/venv' --exclude='opt/keeper/lighter-sdk' --exclude='opt/keeper/bin' \
   --exclude='opt/keeper/.cache' --exclude='__pycache__' --exclude='*.before-*' \
   opt/keeper etc/usecert etc/usecert-keeper opt/usecert-history var/lib/usecert-history \
+  var/mail/vhosts etc/postfix etc/dovecot etc/rspamd/local.d var/lib/rspamd/dkim \
   $(cd / && ls -d etc/systemd/system/usecert-* etc/nginx/snippets/usecert-* usr/local/bin/usecert-* \
        etc/nginx/sites-available/use-cert.com 2>/dev/null) || rc=$?
 [ "$rc" -le 1 ] || { echo "tar failed ($rc)"; exit 1; }

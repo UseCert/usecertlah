@@ -1929,6 +1929,54 @@ so every read failed. It now uses `cast`'s checksum.
 
 ---
 
+### 6.31 Owner decisions recorded, and use-cert.com mail moves to France — 🔄 2026-09-26
+
+**Decisions (owner, 2026-09-26).**
+* **The Terms risk sentence (item 2) is approved** as published. It covers the insurance pool:
+  unaudited, capped at 10,000 USDG, drawable after a public, capped draw proposed by the 2-of-3
+  Safe.
+* **K2's buyback fund and ops wallet are the deployer**, `0x6381577a72266E6b89eE9E96dF604CC3cd3f8e92`
+  (item 7). The buyback leg must be an address that *calls* `CertStaking.notifyRewardAmount`.
+  USDG transferred straight to `CertStaking` is not credited: it would sit there, uncounted and
+  unstreamable. An EOA that forwards by calling `notifyRewardAmount` is correct.
+* **The old governance EOA's 12.379248 USDG goes to `0x0E670BbfFc7ead71e4eb05DFe77016729B6b7C0E`**
+  (item 8). It is a transfer of funds, so the owner signs it himself on Montréal; the command was
+  given, not run. The EOA holds 0.0036 ETH for gas.
+
+**J: use-cert.com mail moves to France.**
+* **The DNS trap.** qwilon.com and orion-safe.com also use `mail.use-cert.com` as their MX, and
+  Montréal's reverse DNS is that name. Repointing `mail.use-cert.com` would have moved all three
+  domains. Instead, France takes a **new name, `mx.use-cert.com`**, and only use-cert.com's MX
+  changes. Montréal and the other two domains are untouched.
+* **Built on France.** Postfix 3.10.6, Dovecot 2.4.2 and rspamd 3.8.1, the same versions as
+  Montréal, so Montréal's working config was reused as is.
+  * Only use-cert.com: one mailbox (support@) and three aliases (feedback, postmaster, abuse).
+  * The same DKIM key, so the published `mail._domainkey` record stays valid.
+  * The support@ password hash was copied host to host, never displayed; the password is
+    unchanged.
+  * Ports 25, 465, 587 and 993 are open. A renewal hook reloads mail when the certificate renews.
+* **Proven on France, before any DNS change.**
+  * Montréal delivered to France on port 25, and the message landed in support@'s INBOX.
+  * Relay to example.org was refused (454), and so was qwilon.com (454).
+  * A local message came out signed, and rspamd verified it against the published key
+    (`R_DKIM_ALLOW`).
+  * The Maildir layout matches Montréal (`.INBOX`).
+* **Backed up.** `usecert-backup-france` now carries the mailbox, the mail config and the DKIM
+  key in the encrypted nightly archive: 184 entries, up from 95.
+* **Waiting on the owner (DNS at OVH).**
+  1. `mx.use-cert.com` A record → `141.94.203.130`.
+  2. Reverse DNS of `141.94.203.130` → `mx.use-cert.com`, set in the OVH panel.
+  3. Once the certificate is issued: use-cert.com MX → `10 mx.use-cert.com.`. SPF is
+     `v=spf1 mx -all`, so it follows the MX with no edit.
+* **Then, on our side:**
+  * issue the certificate for `mx.use-cert.com`;
+  * relay use-cert.com on Montréal to France, so mail from senders still on the old MX (TTL
+    3,600 s) is forwarded, not split;
+  * a final sync of anything that landed on Montréal after 20:36 UTC;
+  * point mail clients at `mx.use-cert.com`.
+
+---
+
 ## Keeping the public page in sync
 
 **This file is not the only roadmap.** `/roadmap` on use-cert.com publishes a reader-facing
