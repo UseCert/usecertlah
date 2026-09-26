@@ -51,6 +51,7 @@ TRACKED_BOOK_URL = "https://raw.githubusercontent.com/UseCert/usecert/backend/co
 MANIFEST = "/var/www/usecert-data/manifest.json"
 INSURANCE_BOOK = "/opt/usecert-history/4663.insurance.json"
 HOST_BOOKS = ["/opt/keeper/book-stack4.json", "/opt/usecert-history/4663.json"]
+MAIL_HOST = "mx.use-cert.com"
 UA = {"User-Agent": "usecert-health/1.0", "Content-Type": "application/json"}
 
 
@@ -200,6 +201,29 @@ def checks():
             P.append("backup: last encrypted copy to Montreal is %.0f h old (usecert-backup-france)" % age_h)
     except (OSError, ValueError):
         P.append("backup: no successful encrypted copy to Montreal on record (%s)" % BACKUP_STAMP)
+    # Mail for use-cert.com (moved here from Montreal 2026-09-26). Falsifiable: connect by NAME,
+    # verify the certificate for that name, and read each daemon's greeting - a stopped dovecot,
+    # an expired or wrong certificate, or a queue that stopped draining all fail loudly here.
+    try:
+        import smtplib, socket, ssl
+        ctx = ssl.create_default_context()
+        s = smtplib.SMTP(MAIL_HOST, 25, timeout=15)
+        if not s.ehlo()[1].decode().startswith(MAIL_HOST):
+            P.append("mail: SMTP on %s:25 answers as someone else" % MAIL_HOST)
+        s.starttls(context=ctx)
+        left = (ssl.cert_time_to_seconds(s.sock.getpeercert()["notAfter"]) - now) / 86400
+        s.quit()
+        if left < 14:
+            P.append("mail: the %s certificate expires in %.0f days (renewal hook reload-mail)" % (MAIL_HOST, left))
+        with ctx.wrap_socket(socket.create_connection((MAIL_HOST, 993), timeout=15), server_hostname=MAIL_HOST) as t:
+            if not t.recv(200).startswith(b"* OK"):
+                P.append("mail: IMAP on %s:993 did not greet" % MAIL_HOST)
+        q = [json.loads(l) for l in subprocess.run(["postqueue", "-j"], capture_output=True, text=True, timeout=20).stdout.splitlines() if l.strip()]
+        old = [m for m in q if now - m.get("arrival_time", now) > 3600]
+        if len(q) > 20 or old:
+            P.append("mail: %d queued, %d older than 1 h - delivery is not draining (postqueue -p)" % (len(q), len(old)))
+    except Exception as e:                                       # noqa: BLE001
+        P.append("mail: %s unreachable or invalid (%s: %s)" % (MAIL_HOST, type(e).__name__, str(e)[:80]))
     return P
 
 

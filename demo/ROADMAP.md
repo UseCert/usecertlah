@@ -1929,7 +1929,7 @@ so every read failed. It now uses `cast`'s checksum.
 
 ---
 
-### 6.31 Owner decisions recorded, and use-cert.com mail moves to France — 🔄 2026-09-26
+### 6.31 Owner decisions recorded, and use-cert.com mail moves to France — ✅ 2026-09-26 (MX switch pending)
 
 **Decisions (owner, 2026-09-26).**
 * **The Terms risk sentence (item 2) is approved** as published. It covers the insurance pool:
@@ -1963,17 +1963,30 @@ so every read failed. It now uses `cast`'s checksum.
   * The Maildir layout matches Montréal (`.INBOX`).
 * **Backed up.** `usecert-backup-france` now carries the mailbox, the mail config and the DKIM
   key in the encrypted nightly archive: 184 entries, up from 95.
-* **Waiting on the owner (DNS at OVH).**
-  1. `mx.use-cert.com` A record → `141.94.203.130`.
-  2. Reverse DNS of `141.94.203.130` → `mx.use-cert.com`, set in the OVH panel.
-  3. Once the certificate is issued: use-cert.com MX → `10 mx.use-cert.com.`. SPF is
-     `v=spf1 mx -all`, so it follows the MX with no edit.
-* **Then, on our side:**
-  * issue the certificate for `mx.use-cert.com`;
-  * relay use-cert.com on Montréal to France, so mail from senders still on the old MX (TTL
-    3,600 s) is forwarded, not split;
-  * a final sync of anything that landed on Montréal after 20:36 UTC;
-  * point mail clients at `mx.use-cert.com`.
+* **DNS (owner):** `mx.use-cert.com` A → `141.94.203.130` and its reverse DNS, both done
+  and checked through a public resolver.
+* **Certificate:** issued for `mx.use-cert.com` (expires 2026-12-25), and the renewal dry-run
+  passes. It is verified from outside, hostname checked, on 25, 587 (STARTTLS), 465 and 993.
+* **France is live now, before the MX change.** Montréal relays use-cert.com to
+  `[mx.use-cert.com]`:
+  * `relay_recipient_maps` holds the four real addresses, so unknown ones are refused at the
+    edge;
+  * use-cert.com is removed from Montréal's virtual domains and mailboxes;
+  * the support@ login on Montréal is removed, so a mail client still pointed there fails
+    visibly instead of reading a frozen copy.
+* **Proven.** A message sent to Montréal arrived on France
+  (`relay=mx.use-cert.com … status=sent`). An unknown address got 550 at Montréal.
+  qwilon.com and orion-safe.com recipients were still accepted, checked at RCPT only, with no
+  mail delivered. Nothing had landed on Montréal since the copy (12 = 12).
+* **Health.** `usecert-health-mainnet` now checks mail every 5 minutes:
+  * SMTP greets as `mx.use-cert.com`, and STARTTLS verifies for that name with more than 14
+    days left;
+  * IMAPS greets;
+  * the queue drains (no more than 20 queued, none older than 1 hour).
+  Falsified by stopping dovecot, which raised "connection refused", then cleared.
+* **Left:** the owner changes use-cert.com's MX to `10 mx.use-cert.com.`. After that,
+  Montréal's relay is only a fallback. Montréal's old use-cert.com Maildir and the config
+  backups stay in `/root` as an archive.
 
 ---
 
