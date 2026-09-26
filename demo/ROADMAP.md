@@ -1984,6 +1984,19 @@ so every read failed. It now uses `cast`'s checksum.
   * IMAPS greets;
   * the queue drains (no more than 20 queued, none older than 1 hour).
   Falsified by stopping dovecot, which raised "connection refused", then cleared.
+* **Caught by a renewal dry-run: two certificates that would have died in December.** Both
+  hosts had a `use-cert.com` certificate listing `use-cert.com`, `www` and `mail`, while
+  the names now point at different hosts. So each host's HTTP-01 renewal failed for the names
+  that live on the other.
+  * Unfixed, **the site's HTTPS would have expired on 13 December**, and so would the TLS for
+    qwilon.com and orion-safe.com mail.
+  * France now holds `use-cert.com` + `www` and a separate `mx.use-cert.com`. Montréal holds
+    `mail.use-cert.com` alone.
+  * All four pass `certbot renew --dry-run`, and all eight mail ports verify with the hostname
+    checked.
+  * Each host has a `reload-mail` deploy hook, so mail picks up a renewed certificate.
+  * Still to retire: Montréal's old `use-cert.com` lineage and its nginx site. The site serves
+    nothing, since DNS points at France, but its renewal will keep failing until removed.
 * **Left:** the owner changes use-cert.com's MX to `10 mx.use-cert.com.`. After that,
   Montréal's relay is only a fallback. Montréal's old use-cert.com Maildir and the config
   backups stay in `/root` as an archive.
