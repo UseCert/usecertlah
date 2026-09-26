@@ -1929,7 +1929,7 @@ so every read failed. It now uses `cast`'s checksum.
 
 ---
 
-### 6.31 Owner decisions recorded, and use-cert.com mail moves to France — ✅ 2026-09-26 (MX switch pending)
+### 6.31 Owner decisions recorded, and use-cert.com mail moves to France — ✅ 2026-09-26
 
 **Decisions (owner, 2026-09-26).**
 * **The Terms risk sentence (item 2) is approved** as published. It covers the insurance pool:
@@ -1997,8 +1997,14 @@ so every read failed. It now uses `cast`'s checksum.
   * Each host has a `reload-mail` deploy hook, so mail picks up a renewed certificate.
   * Still to retire: Montréal's old `use-cert.com` lineage and its nginx site. The site serves
     nothing, since DNS points at France, but its renewal will keep failing until removed.
-* **Left:** the owner changes use-cert.com's MX to `10 mx.use-cert.com.`. After that,
-  Montréal's relay is only a fallback. Montréal's old use-cert.com Maildir and the config
+* **MX switched (owner, 2026-09-26):** `10 mx.use-cert.com.`, confirmed on both OVH
+  nameservers, Google and Cloudflare.
+  * During the TTL a sender with the old MX cached still reaches Montréal, which forwards to
+    France. Proven with a real MX-lookup delivery from a host whose resolver still held
+    `mail.use-cert.com`: it arrived in the France inbox.
+  * Nothing legitimate sends as @use-cert.com from Montréal (7 days of logs, cron and scripts
+    checked), so `v=spf1 mx -all`, which now authorises only France, breaks nothing.
+  * Montréal's relay stays as a fallback. Montréal's old use-cert.com Maildir and the config
   backups stay in `/root` as an archive.
 
 ---
