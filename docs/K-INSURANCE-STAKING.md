@@ -156,7 +156,11 @@ treasury). All of them now say 70/20/5/5. `test_ownerSplit_70_20_5_5` pins it: 1
 splits to exactly 8.641974 / 2.469135 / 0.617283 / 0.617283, with 3 units of dust carried
 forward.
 
-Still to decide before K2 deploys: the buyback fund and ops wallet addresses.
+**Decided 2026-09-26 (owner):** the buyback fund and the ops wallet are both the deployer,
+`0x6381577a72266E6b89eE9E96dF604CC3cd3f8e92`. An EOA cannot revert a USDG transfer, so it
+satisfies point 3. The buyback leg reaches CERT stakers only when the fund **calls**
+`CertStaking.notifyRewardAmount`. `FeeVault` must never pay `CertStaking` directly: a plain
+transfer into it is not credited, and nothing could ever stream it.
 
 3. **Recipients that cannot be frozen out.** One recipient whose transfer reverts stalls every
    `distribute()`, and `FeeVault` has no owner to route around it. Suitable recipients: the Safe
